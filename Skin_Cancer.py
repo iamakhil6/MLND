@@ -47,6 +47,13 @@ model.compile(loss= 'categorical_crossentropy', optimizer='rmsprop', metrics=['a
 # stop= EarlyStopping(monitor='val_loss', patience=2)
 model.fit_generator(train_data, epochs=1, validation_data= valid_data, shuffle= True)
 model.load_weights('best_model/skin_cancer.hdf5')
-predictions = [np.argmax(model.predict(np.expand_dims(feature, axis=0))) for feature in x_test ]
+def convert(path):
+    img = load_img(path= path,target_size=(32, 32))
+    x= img_to_array(img)
+    x= np.expand_dims(x, axis=0)
+    return np.argmax(model.predict(x))
+predictions=[]
+for feature in x_test:
+    predictions.append(convert(feature))
 accuracy= 100* np.sum(np.array(predictions)== np.argmax(y_test, axis=1)/len(predictions))
 print('Accuracy ',accuracy)
