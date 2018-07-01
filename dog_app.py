@@ -1,3 +1,4 @@
+import keras
 from keras import Sequential
 from keras.callbacks import ModelCheckpoint
 from keras.layers import Conv2D, MaxPooling2D, Dense, GlobalAveragePooling2D
@@ -75,7 +76,7 @@ def face_detector(img_path):
 
 human_files_short = human_files[:100]
 dog_files_short = train_files[:100]
-print(type(human_files_short))
+print(type(human_files_short), human_files_short[0])
 human_count = 0
 dog_count = 0
 for  i in range(100):
@@ -135,53 +136,167 @@ from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # pre-process the data for Keras
-# train_tensors = paths_to_tensor(train_files).astype('float32')/255
-# valid_tensors = paths_to_tensor(valid_files).astype('float32')/255
-# test_tensors = paths_to_tensor(test_files).astype('float32')/255
+train_tensors = paths_to_tensor(train_files).astype('float32')/255
+valid_tensors = paths_to_tensor(valid_files).astype('float32')/255
+test_tensors = paths_to_tensor(test_files).astype('float32')/255
 
-# model = Sequential()
-# model.add(Conv2D(16, kernel_size=3, padding='same', activation='relu', input_shape=(224, 224,3)))
-# model.add(MaxPooling2D(pool_size=2, padding='same'))
-# model.add(Conv2D(16, kernel_size=3, padding='same', activation='relu'))
-# model.add(MaxPooling2D(pool_size=2, padding='same'))
-# model.add(Conv2D(16, kernel_size=3, padding='same', activation='relu'))
-# model.add(MaxPooling2D(pool_size=2, padding='same'))
-# model.add(GlobalAveragePooling2D(input_shape= (28, 28, 3)))
-# model.add(Dense(133, activation='softmax'))
-# model.summary()
-# model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
-# epochs = 5
-# checkpointer = ModelCheckpoint('saved_models/weights.best.from_scratch.hdf5', verbose=1, save_best_only=True)
-# train_datagen = ImageDataGenerator(height_shift_range=0.3, width_shift_range=0.3, vertical_flip=True, horizontal_flip=True, zoom_range=0.2)
-# valid_datagen = ImageDataGenerator(height_shift_range=0.3, width_shift_range=0.3, vertical_flip=True, horizontal_flip=True, zoom_range=0.2)
-# train_datagen.fit(train_tensors)
-# valid_datagen.fit(valid_tensors)
-# model.fit_generator(train_datagen.flow(train_tensors, train_targets, batch_size=32), epochs=epochs, validation_data=valid_datagen.flow(valid_tensors, valid_targets, batch_size=32), verbose=1, callbacks=[checkpointer])
-# model.load_weights('saved_models/weights.best.from_scratch.hdf5')
-# dog_breed_predictions = [np.argmax(model.predict(np.expand_dims(tensor, axis=0))) for tensor in test_tensors]
-#
-# # report test accuracy
-# test_accuracy = 100*np.sum(np.array(dog_breed_predictions)==np.argmax(test_targets, axis=1))/len(dog_breed_predictions)
-# print('Test accuracy: %.4f%%' % test_accuracy)
-#
-# print('Accuracy ', model.evaluate(test_tensors, test_targets))
+# ----------------------------------   From Scratch    ------------------------------------------------------------
 
-bottleneck_features = np.load('bottleneck_features/DogVGG16Data.npz')
-train_VGG16 = bottleneck_features['train']
-valid_VGG16 = bottleneck_features['valid']
-test_VGG16 = bottleneck_features['test']
+model = Sequential()
+model.add(Conv2D(16, kernel_size=3, padding='same', activation='relu', input_shape=(224, 224,3)))
+model.add(MaxPooling2D(pool_size=2, padding='same'))
+model.add(Conv2D(16, kernel_size=3, padding='same', activation='relu'))
+model.add(MaxPooling2D(pool_size=2, padding='same'))
+model.add(Conv2D(16, kernel_size=3, padding='same', activation='relu'))
+model.add(MaxPooling2D(pool_size=2, padding='same'))
+model.add(GlobalAveragePooling2D(input_shape= (28, 28, 3)))
+model.add(Dense(133, activation='softmax'))
+model.summary()
+model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+epochs = 10
 
-VGG16_model = Sequential()
-VGG16_model.add(GlobalAveragePooling2D(input_shape= (train_VGG16.shape[1:])))
-VGG16_model.add(Dense(133, activation='softmax'))
-VGG16_model.summary()
-VGG16_model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+checkpointer = ModelCheckpoint('saved_models/weights.best.from_scratch.hdf5', verbose=1, save_best_only=True)
+train_datagen = ImageDataGenerator(height_shift_range=0.3, width_shift_range=0.3, vertical_flip=True, horizontal_flip=True, zoom_range=0.2)
+valid_datagen = ImageDataGenerator(height_shift_range=0.3, width_shift_range=0.3, vertical_flip=True, horizontal_flip=True, zoom_range=0.2)
+train_datagen.fit(train_tensors)
+valid_datagen.fit(valid_tensors)
+model.fit_generator(train_datagen.flow(train_tensors, train_targets, batch_size=32), epochs=epochs, validation_data=valid_datagen.flow(valid_tensors, valid_targets, batch_size=32), verbose=1, callbacks=[checkpointer])
+model.load_weights('saved_models/weights.best.from_scratch.hdf5')
+dog_breed_predictions = [np.argmax(model.predict(np.expand_dims(tensor, axis=0))) for tensor in test_tensors]
 
-checkpointer = ModelCheckpoint(filepath='saved_models/weights.best.VGG16.hdf5', verbose=1, save_best_only=True)
-VGG16_model.fit(train_VGG16, train_targets, validation_data=(valid_VGG16, valid_targets), epochs=10, batch_size=20, callbacks=[checkpointer], verbose=1)
-
-VGG16_model.load_weights('saved_models/weights.best.VGG16.hdf5')
-
-VGG16_predictions = [np.argmax(VGG16_model.predict(feature)) for feature in test_VGG16]
-test_accuracy= 100*np.sum(np.array(VGG16_predictions)== np.argmax(test_targets, axis=1)/len(VGG16_predictions))
+# report test accuracy
+test_accuracy = 100*np.sum(np.array(dog_breed_predictions)==np.argmax(test_targets, axis=1))/len(dog_breed_predictions)
 print('Test accuracy: %.4f%%' % test_accuracy)
+
+# -------------------------------  VGG16 Model  ------------------------------------------------------------------
+
+# bottleneck_features = np.load('bottleneck_features/DogVGG16Data.npz')
+# train_VGG16 = bottleneck_features['train']
+# valid_VGG16 = bottleneck_features['valid']
+# test_VGG16 = bottleneck_features['test']
+#
+# VGG16_model = Sequential()
+# VGG16_model.add(GlobalAveragePooling2D(input_shape= (train_VGG16.shape[1:])))
+# VGG16_model.add(Dense(133, activation='softmax'))
+# VGG16_model.summary()
+# VGG16_model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+#
+# checkpointer = ModelCheckpoint(filepath='saved_models/weights.best.VGG16.hdf5', verbose=1, save_best_only=True)
+# VGG16_model.fit(train_VGG16, train_targets, validation_data=(valid_VGG16, valid_targets), epochs=10, batch_size=20, callbacks=[checkpointer], verbose=1)
+#
+# VGG16_model.load_weights('saved_models/weights.best.VGG16.hdf5')
+#
+# VGG16_predictions = [np.argmax(VGG16_model.predict(np.expand_dims(feature, axis=0))) for feature in test_VGG16]
+# test_accuracy= 100*np.sum(np.array(VGG16_predictions)== np.argmax(test_targets, axis=1))/len(VGG16_predictions)
+
+#--------------------------------  VGG19 Model  ---------------------------------------------------------------------
+
+# bottleneck_features = np.load('bottleneck_features/DogVGG19Data.npz')
+# train_VGG19 = bottleneck_features['train']
+# test_VGG19 = bottleneck_features['test']
+# valid_VGG19 = bottleneck_features['valid']
+#
+# VGG19_model= Sequential()
+# print('Shape ',train_VGG19.shape[1:])
+# VGG19_model.add(GlobalAveragePooling2D(input_shape= train_VGG19.shape[1:]))
+# VGG19_model.add(Dense(133, activation='softmax'))
+# VGG19_model.summary()
+# VGG19_model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer='rmsprop')
+# checkpointer = ModelCheckpoint('saved_models/weights.best.VGG19.hdf5', save_best_only=True, verbose=1)
+# train_datagen = ImageDataGenerator(vertical_flip=True, horizontal_flip=True, width_shift_range=0.3, height_shift_range=0.2,rotation_range=0.2, data_format='channels_last')
+# train_datagen.fit(train_VGG19)
+# valid_datagen = ImageDataGenerator(vertical_flip=True, horizontal_flip=True, width_shift_range=0.3, height_shift_range=0.2,rotation_range=0.2, data_format='channels_last')
+# valid_datagen.fit(valid_VGG19)
+# # DogVGG19_model.fit(train_VGG19, train_targets, epochs= 10, batch_size=20, validation_data=(valid_VGG19, valid_targets), verbose=1, callbacks=[checkpointer])
+# VGG19_model.fit_generator(train_datagen.flow(train_VGG19, train_targets, 20), epochs= 70, validation_data= valid_datagen.flow(valid_VGG19, valid_targets, 20), verbose=1, callbacks=[checkpointer])
+# VGG19_model.load_weights('saved_models/weights.best.VGG19.hdf5')
+# VGG19_predictions = [np.argmax(VGG19_model.predict(np.expand_dims(feature, axis=0))) for feature in test_VGG19]
+# test_accuracy = 100 * np.sum(np.array(VGG19_predictions) == np.argmax(test_targets, axis=1))/len(VGG19_predictions)
+# print('Test accuracy: %.4f%%' % test_accuracy)
+
+# -------------------------------------------  InceptionV3  ------------------------------------------------------------------
+
+'''
+Accuracy improved because we used pre trained model along with Image Augmentation on our dataset
+This model is successful for image classification compared to VGG16, VGG19, RESNET because of it's architecture
+'''
+epochs = 5
+# Instantiate Pre trained model into bottleneck_features
+bottleneck_features = np.load('bottleneck_features/DogInceptionV3Data.npz')
+train_InceptionV3 = bottleneck_features['train']
+test_InceptionV3 = bottleneck_features['test']
+valid_InceptionV3 = bottleneck_features['valid']
+
+InceptionV3_model= Sequential()
+print('Shape ',train_InceptionV3.shape[1:])
+
+# We are connecting last layer of InceptionV3 model to GAP layer and dense layer where one node is allocated for each dog category for the later
+InceptionV3_model.add(GlobalAveragePooling2D(input_shape= train_InceptionV3.shape[1:]))
+InceptionV3_model.add(Dense(133, activation='softmax'))
+InceptionV3_model.summary()
+InceptionV3_model.compile(metrics=['accuracy'], loss='categorical_crossentropy', optimizer='rmsprop')
+
+# To save best model weights which we will use for predictions later
+checkpointer = ModelCheckpoint('saved_models/weights.best.DogInceptionV3Data.hdf5', save_best_only=True, verbose=1)
+train_datagen = ImageDataGenerator(vertical_flip=True, horizontal_flip=True, width_shift_range=0.3, height_shift_range= 0.2, rotation_range=0.2, data_format='channels_last')
+train_datagen.fit(train_InceptionV3)
+
+# Generate batches of tensor image data with real-time data augmentation. So that same image won't repeat more than twice will help in improving efficiency
+valid_datagen = ImageDataGenerator(vertical_flip=True, horizontal_flip=True, width_shift_range=0.3, height_shift_range= 0.2, rotation_range=0.2, data_format='channels_last')
+valid_datagen.fit(valid_InceptionV3)
+
+# Training InceptionV3 model with data generators to achieve better accuracy
+InceptionV3_model.fit_generator(train_datagen.flow(train_InceptionV3, train_targets, 30), epochs= epochs, validation_data= valid_datagen.flow(valid_InceptionV3, valid_targets, 20), verbose=1, callbacks=[checkpointer])
+InceptionV3_model.load_weights('saved_models/weights.best.DogInceptionV3Data.hdf5')
+
+#  Get index of predicted dog breed in test set
+InceptionV3_predictions = [np.argmax(InceptionV3_model.predict(np.expand_dims(feature, axis=0))) for feature in test_InceptionV3]
+
+#  Report test accuracy
+test_accuracy = 100 * np.sum(np.array(InceptionV3_predictions) == np.argmax(test_targets, axis=1))/len(InceptionV3_predictions)
+print('Test accuracy: %.4f%%' % test_accuracy)
+
+from extract_bottleneck_features import *
+
+# Method that accepts a file path to an image and determines whether the image contains a human, dog, or neither. And return the predicted breed
+def InceptionV3_predict_breed(img_path):
+    
+    #  To display Image
+    tensor = path_to_tensor(img_path)
+    image = np.squeeze(tensor, axis=0)
+    image = image.astype('float32') / 255
+    plt.imshow(image)
+    plt.show()
+    
+    # Another way To display Image
+    # z = keras.preprocessing.image.load_img(img_path)
+    # z = keras.preprocessing.image.img_to_array(z)
+    # z = z.astype('float32') / 255
+    # plt.imshow(z)
+    # plt.show()
+    # extract bottleneck features
+    img = extract_InceptionV3(tensor)
+    x = 0
+    if dog_detector(img_path):
+        print('Hello Dog ')
+    elif face_detector(img_path):
+        print('Hello Human ')
+    else:
+        x = 1
+    if(x == 1):
+        return "Please provide valid input image "
+    else:
+        # obtain predicted vector
+        InceptionV3_model.load_weights('saved_models/weights.best.DogInceptionV3Data.hdf5')
+        predicted_vector = InceptionV3_model.predict(img)
+        
+        # return dog breed that is predicted by the model
+        return 'You look like a ' + dog_names[np.argmax(predicted_vector)]
+
+print(InceptionV3_predict_breed(dog_files_short[1]))
+print(InceptionV3_predict_breed(dog_files_short[20]))
+print(InceptionV3_predict_breed(dog_files_short[10]))
+print(InceptionV3_predict_breed(dog_files_short[0]))
+print(InceptionV3_predict_breed(human_files_short[0]))
+print(InceptionV3_predict_breed(human_files_short[10]))
+print(InceptionV3_predict_breed(human_files_short[21]))
