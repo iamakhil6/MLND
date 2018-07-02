@@ -260,40 +260,6 @@ from extract_bottleneck_features import *
 
 # Method that accepts a file path to an image and determines whether the image contains a human, dog, or neither. And return the predicted breed
 def InceptionV3_predict_breed(img_path):
-    
-    #  To display Image
-    tensor = path_to_tensor(img_path)
-    image = np.squeeze(tensor, axis=0)
-    image = image.astype('float32') / 255
-    plt.imshow(image)
-    plt.show()
-    
-    # Another way To display Image
-    # z = keras.preprocessing.image.load_img(img_path)
-    # z = keras.preprocessing.image.img_to_array(z)
-    # z = z.astype('float32') / 255
-    # plt.imshow(z)
-    # plt.show()
-    # extract bottleneck features
-    img = extract_InceptionV3(tensor)
-    x = 0
-    if dog_detector(img_path):
-        print('Hello Dog ')
-    elif face_detector(img_path):
-        print('Hello Human ')
-    else:
-        x = 1
-    if(x == 1):
-        return "Please provide valid input image "
-    else:
-        # obtain predicted vector
-        InceptionV3_model.load_weights('saved_models/weights.best.DogInceptionV3Data.hdf5')
-        predicted_vector = InceptionV3_model.predict(img)
-        
-        # return dog breed that is predicted by the model
-        return 'You look like a ' + dog_names[np.argmax(predicted_vector)]
-
-def InceptionV3_predict_breed(img_path):
     tensor = path_to_tensor(img_path)
     image = np.squeeze(tensor, axis=0)
     # extract bottleneck features & preprocessing on input
