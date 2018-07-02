@@ -294,33 +294,32 @@ def InceptionV3_predict_breed(img_path):
         return 'You look like a ' + dog_names[np.argmax(predicted_vector)]
 
 def InceptionV3_predict_breed(img_path):
-    #  To display Image
-    z = keras.preprocessing.image.load_img(img_path)
-    z = keras.preprocessing.image.img_to_array(z)
-    z = z.astype('float32') / 255
-    plt.imshow(z)
-    plt.show()
-    # extract bottleneck features
-    # img = extract_InceptionV3(tensor)
-    # x = 0
+    tensor = path_to_tensor(img_path)
+    image = np.squeeze(tensor, axis=0)
+    # extract bottleneck features & preprocessing on input
+    img = extract_InceptionV3(tensor)
     if dog_detector(img_path):
-        plt.title('Hello Dog! ')
+        plt.text(-20, -20, 'Hello Dog! ')
+        plt.imshow(image)
         predicted_vector = InceptionV3_model.predict(img)
+        plt.text(-20, -10, "Your predicted breed is " + dog_names[np.argmax(predicted_vector)])
         plt.show()
-        return 'Your predicted breed is ' + dog_names[np.argmax(predicted_vector)]
     elif face_detector(img_path):
-        plt.title('Hello Human ')
-        plt.show()
+        plt.text(-20, -20, 'Hello Human ')
+        plt.imshow(image)
         predicted_vector = InceptionV3_model.predict(img)
-        return 'You look like a ' + dog_names[np.argmax(predicted_vector)]
-    else:
+        plt.text(-20, -10, "You look alike " + dog_names[np.argmax(predicted_vector)])
         plt.show()
-        return "Please provide valid input image "
+    else:
+        plt.text(-20, -20, 'Please provide a valid input ', color= 'red')
+        plt.imshow(image)
+        plt.show()
+
     
-print(InceptionV3_predict_breed(dog_files_short[1]))
-print(InceptionV3_predict_breed(dog_files_short[20]))
-print(InceptionV3_predict_breed(dog_files_short[10]))
-print(InceptionV3_predict_breed(dog_files_short[0]))
-print(InceptionV3_predict_breed(human_files_short[0]))
-print(InceptionV3_predict_breed(human_files_short[10]))
-print(InceptionV3_predict_breed(human_files_short[21]))
+InceptionV3_predict_breed(dog_files_short[1])
+InceptionV3_predict_breed(dog_files_short[20])
+InceptionV3_predict_breed(dog_files_short[10])
+InceptionV3_predict_breed(dog_files_short[0])
+InceptionV3_predict_breed(human_files_short[0])
+InceptionV3_predict_breed(human_files_short[10])
+InceptionV3_predict_breed(human_files_short[21])
